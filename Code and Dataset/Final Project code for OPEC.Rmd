@@ -1,0 +1,315 @@
+---
+title: "Final project code for OPEC"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+mydata <- read.csv("~/Desktop/Final DATA SET.csv")
+attach(mydata)
+dprice<-diff(Price)
+ddays<-diff(Days)
+dquota<-diff(Quota)
+dcheat<-diff(Cheat)
+dcaputil<-diff(Caputil)
+```
+
+
+
+ADF test and HEGY test
+```{r}
+require(urca)
+require(uroot)
+x<-ur.df(Price, type = "trend" , selectlags = "AIC")
+summary(x)
+chickenfingers1 <- ts(mydata$Price, frequency = 4)
+HegyPrice <- hegy.test(x = chickenfingers1, deterministic = c(1,1,1),lag.method = "AIC")
+
+ 
+summary(HegyPrice)
+
+HegyPrice <- hegy.test(x = chickenfingers1, deterministic = c(1,1,1),lag.method = "AIC")
+summary(HegyPrice)
+
+
+
+
+
+ chickenfingers2 <- ts(mydata$Days, frequency = 4)
+ HegyDays <- hegy.test(x = chickenfingers2, deterministic = c(1,1,1),lag.method = "AIC")
+summary(HegyDays)
+
+
+ Y <- Price
+ OLSResidual <- lm(Y~Days + Caputil + Cheat + Quota + Q1 + Q2 + Q3 + War1 + War2)
+ lm(Price ~ Days)
+  v <- resid(OLSResidual)
+ plot(OLSResidual)
+ summary(v)
+
+
+
+```
+
+
+
+
+
+*Step 1:
+testing the variable whether stationary or non-stationary
+Method:ADF test
+Reason:we are doing more than one lag
+```{r}
+require(tseries)
+#ADF test for I(1) variables
+adf.test(Days, alternative="stationary")# fail to reject
+adf.test(Quota, alternative="stationary")#fail to reject
+adf.test(Cheat, alternative="stationary")# fail to reject
+adf.test(Caputil, alternative="stationary") # fail to reject
+adf.test(Price, alternative="stationary")# fail to reject
+
+#ADF for the differenced variable I(0)
+adf.test(ddays) #reject 
+adf.test(dquota)#reject 
+adf.test(dcheat)#reject 
+adf.test(dcaputil)#reject 
+adf.test(dprice)#reject 
+```
+The test above indicated those variables are non-stationary, and differenced of those  variables are stationary
+
+
+
+*Step 2
+
+Plot for the Variables
+Equation for cointegrating relation for real oil Prices
+Price= a+days+quota++Cheat+b*capitil+Q1+Q2+Q3+War1+War2
+```{r}
+require(zoo)    
+require("dyn")
+
+Price1<-ts(mydata$Price,start=1986,frequency=4)
+Days1<-ts(mydata$Days,start=1986,frequency = 4)
+Caputil1<-ts(mydata$Caputil,start=1986,frequency = 4)
+Quota1<-ts(mydata$Quota,start=1986,frequency = 4)
+Cheat1<-ts(mydata$Cheat,start=1986,frequency = 4)
+
+plot_colors <- c("blue","red","forestgreen","purple","black")
+plot_colors
+data_use<-data.frame(Price1,Days1,Caputil1,Quota1,Cheat1)
+max_y<-max(data_use)
+plot(Price1, type="l", col=plot_colors[1],ylim=c(0,max_y),ann=FALSE)
+
+lines(Days1, type="l", pch=22, lty=2, 
+      col=plot_colors[2])
+lines(Caputil1, type="l", pch=23, lty=3, 
+      col=plot_colors[3])
+lines(Quota1, type="l", pch=24, lty=4, 
+      col=plot_colors[4])
+lines(Cheat1, type="l", pch=25, lty=5, 
+      col=plot_colors[5])
+
+title(main="Cointergrating Varibles", col.main="black", font.main=4)
+
+title(ylab= "Million Barrels per Day")
+names(data_use)
+
+
+legend("bottomright", names(data_use), cex=0.35
+       , col=plot_colors, 
+       lty=1:5, lwd=2, bty="n")
+```
+
+The original Papaer using the data from 1986 to 2000.  We are going add other 10 year into the dataset.(1886 to 2010)
+
+* we know that  variables Prices, Days,Quota, Cheat, and Caputil are I(1), because they don't have mean zero and constant variance.
+
+The graph above show that the I(1) variables Prices, Days,Quota, Cheat, and Caputil are cointergte.I(1) variable means they are non-stationary. We are graphing those I(1) variable to see whether those variables have common stochastic trend.  If Those I(1) variables are cointegrated,then we can compute the linear combination of those I(1) varibles, and linear combination is going to be I(0), which is stationary. 
+
+Result from the graph:
+The I(1) variables Prices, Days,Quota, Cheat, and Caputil are cointergte, then we can use the error correction model and vector error correction model.
+
+
+*Step 3:
+Using the Johansen cointegration test.
+Reason: To confirm that those variables Prices are cointegrate with Days,Quota, Cheat.
+
+```{r}
+require(urca)
+
+Y<-cbind(Price,Days,Cheat,Quota,Caputil)
+ 
+
+#TRACE Statistics
+L1<-ca.jo (Y,type='trace', ecdet = "const", K=2) # we are using const, because we assume that there is no linear trend.
+summary(L1)
+#Eigen Value Statistics
+L2<-ca.jo (Y,type='eigen', ecdet = "const", K=2)
+summary(L2)
+```
+
+*TRACE Statistic
+
+Values of teststatistic and critical values of test:
+
+           test 10pct  5pct  1pct
+r <= 4 |   3.68  7.52  9.24 12.97
+r <= 3 |  12.28 17.85 19.96 24.60
+r <= 2 |  26.89 32.00 34.91 41.07
+r <= 1 |  61.43 49.65 53.12 60.16
+r = 0  | 102.07 71.86 76.07 84.45
+
+* EIGEN Value Statisitic
+Values of teststatistic and critical values of test:
+
+          test 10pct  5pct  1pct
+r <= 4 |  3.68  7.52  9.24 12.97
+r <= 3 |  8.60 13.75 15.67 20.20
+r <= 2 | 14.61 19.77 22.00 26.81
+r <= 1 | 34.54 25.56 28.14 33.24
+r = 0  | 40.64 31.66 34.40 39.79
+
+r=0 means there is no cointegration
+r=1 means there is 1 cointegration
+r=2 means there is 2 cointegration
+r=4 means all the varibles are cointegrating
+
+Both Trace and Eigen value statistic show that reject null at r = 0 , r=1. and  both show fail to reject null at r=2.which means we are going to pick r=2 for our vecm model, and it means there are two cointegration.
+
+
+
+
+*Since  Prices are cointegrate with Days,Quota, Cheat, and Caputil,then they have long run relationship, so we can run the error correction model and vector error correction model
+
+Step 4 :
+OLS model
+```{r}
+ols_model<-lm(Price~Days+Cheat+Caputil+Quota+Q1+Q2+Q3+War1+War2)
+summary(ols_model)
+plot ( ols_model$ residuals , type ="l") #mean 0 and constant variance
+require(stargazer)
+stargazer(ols_model, type = "text")
+
+```
+The OSL show that all the varibles Days, Cheat, Caputil, Quota are statiscally significant at 5% level individual. The F-statistic is 12.95 and P value is less than 0.05.  However the dummies varibles are not statiscally significant. So I am assuming that we do not need those dummies variable due to the fact that those varibles did not change dramatically each quater.
+
+Step 5: DOLS with error correction model for short run with one lag
+euqation: delta price = k + a(mu)+ delta Days +delta Quota + delta CAPUTIL + delta Price.
+
+Face: mu is the regression residual from OLS model(Step 4)
+
+```{r}
+require(dynlm)
+dprice<-diff(Price)
+ddays<-diff(Days)
+dquota<-diff(Quota)
+dcheat<-diff(Cheat)
+dcaputil<-diff(Caputil)
+
+Dprice<-ts(dprice,start=1986,frequency=4)
+Ddays<-ts(ddays,start=1986,frequency=4)
+Dquota<-ts(dquota,start=1986,frequency=4)
+Dcheat<-ts(dcheat,start=1986,frequency=4)
+Dcaputil<-ts(dcaputil,start=1986,frequency=4)
+ect <- resid(ols_model)[1:97] 
+ect1<-ts(ect,start=1986,frequency = 4)
+
+ecmdata_use <- cbind(Dprice, Ddays, Dcheat+Dcaputil+Dquota +ect1)
+ecm <- dynlm(Dprice ~ +ect1+L(ect1,1)+Ddays+ L(Ddays, 1) + Dcheat+L(Dcheat, 1)+Dcaputil+ L(Dcaputil,1)+Dquota+L(Dquota,1) , data = ecmdata_use)
+summary(ecm)
+require(stargazer)
+stargazer(ecm,type="text")
+```
+
+The Error Correction model show that  increase in days, cheat, quota tend to increase price and increase in caputil tend to decrease price.
+
+
+
+Step 6:
+Long run VECM for r=2, lag = 1
+we use r=2 because the johensan test said that. r=2 means two cointegration 
+Those variable are non-stationary I(0)
+```{r}
+require(tsDyn)
+z<-cbind(Q1,Q2,Q3,War1,War2)
+y<-cbind(Price,Days,Cheat,Quota,Caputil)
+
+model2<-lineVar(y, 1 , r = 2, include = c("const"),
+        model = c( "VECM"), beta = NULL,estim = c("ML"),  exogen = z)
+summary(model2)
+
+
+# VECM with R=2 and 1 Lag
+attach(mydata)
+require(urca)
+z<-cbind(Q1,Q2,Q3,War1,War2)
+y<-cbind(Price,Days,Cheat,Quota,Caputil)
+vec1 <- ca.jo(y, type='eigen', K=2,  dumvar=z)
+vecmL<-cajorls(vec1, r=2)
+vecmL
+```
+
+
+
+
+
+```{r}
+require(vars)
+
+var1<-VAR(y, p = 1, type = c("const"),
+season = NULL, exogen = z, lag.max = 10,
+ic = c("AIC"))
+summary(var1)
+
+
+causality(var1,cause = "Price")$Granger
+for (i in 1:4)
+  {
+  cat("LAG =", i)
+  print(causality(VAR(y, p = i, type = "const"), cause = "Price")$Granger)
+  }
+
+
+```
+
+In the paper, the author state that Prices Granger-cause Days, Cheat, Quota, Caputil. And we come up with this result P value is smaller than 0.05. Then, we rejected the null. therefore : Price do  Granger-cause Days Cheat Quota
+	Caputil at 5%level. 
+	
+	
+Graph
+```{r}
+
+
+#Price
+
+mydata[1:5,]
+plot(mydata[,2])
+plot(mydata[,2], type = "l", lwd=4, col="Orange", xlab = "Time 1986-2010", ylab = "Price", main = "Quarterly Price 1986 - 2010", ylim = c(0,100))
+diff(log(mydata[,2])) # Took the first difference and set it up in log format for more readable #'s.....Results show change in Price from quarter to quarter
+plot(100*diff(log(mydata[,2])), type = "l", lwd=4, col="Orange", xlab = "Time 1986-2010", ylab = "Price", main = "Differenced Log of Quarterly Price 1986Q3 - 2010Q3", ylim = c(-80,60))
+abline(h=0, col = "lightgray", lwd = 3)
+
+#Days
+plot(mydata[,3], type = "l", lwd=4, col="Red", xlab = "Time 1986-2010", ylab = "Days", main = "Quarterly Days 1986 - 2010")
+plot(100*diff(log(mydata[,3])), type = "l", lwd=4, col="Red", xlab = "Time 1986-2010", ylab = "Days", main = "Differenced Log of Quarterly Days 1986Q3 - 2010Q3", ylim = c(-20,20))
+abline(h=0, col = "lightgray", lwd = 3)
+
+#Cheat
+plot(mydata[,4], type = "l", lwd=4, col="Blue", xlab = "Time 1986-2010", ylab = "Cheat", main = "Quarterly Cheat 1986 - 2010")
+plot(100*diff(log(mydata[,4])), type = "l", lwd=4, col="Blue", xlab = "Time 1986-2010", ylab = "Cheat", main = "Differenced Log of Quarterly Cheat 1986Q3 - 2010Q3")
+abline(h=0, col = "lightgray", lwd = 3)
+
+#QUota
+plot(mydata[,5], type = "l", lwd=4, col="green", xlab = "Time 1986-2010", ylab = "Quota", main = "Quarterly Quota 1986 - 2010")
+plot(100*diff(log(mydata[,5])), type = "l", lwd=4, col="green", xlab = "Time 1986-2010", ylab = "Quota", main = "Differenced Log of Quarterly Quota 1986Q3 - 2010Q3")
+abline(h=0, col = "lightgray", lwd = 1)
+
+Caputil
+plot(mydata[,8], type = "l", lwd=4, col="purple", xlab = "Time 1986-2010", ylab = "Caputil", main = "Quarterly Caputil 1986 - 2010")
+plot(100*diff(log(mydata[,8])), type = "l", lwd=4, col="purple", xlab = "Time 1986-2010", ylab = "Caputil", main = "Differenced Log of Quarterly Caputil 1986Q3 - 2010Q3")
+abline(h=0, col = "lightgray", lwd = 3)
+
+```

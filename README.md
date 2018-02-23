@@ -9,3 +9,6 @@
 
 ## REFERENCES
 * Linked references are available on JSTOR for this article: http://www.jstor.org/stable/41323358?seq=1&cid=pdf-reference#references_tab_contents You may need to log in to JSTOR to access the linked references
+
+## Citation
+* Kaufmann, Robert K., et al. “Does OPEC Matter? An Econometric Analysis of Oil Prices.” The Energy Journal, vol. 25, no. 4, 2004, pp. 67–90. JSTOR, JSTOR, www.jstor.org/stable/41323358.
